@@ -59,6 +59,7 @@ func save(fname string, ents []*models.Entity) {
 				Countries:   countries,
 				ReleaseDate: e.ReleaseDate,
 				Torrent:     []*Torrent{&t},
+				PosterPath:  e.PosterPath,
 			}
 			rid.Items = append(rid.Items, tid)
 		} else {
