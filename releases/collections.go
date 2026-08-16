@@ -229,6 +229,7 @@ func getCollectionId(coll *ml.Collection, ents []*models.Entity) *CollectionId {
 				Countries:   countries,
 				ReleaseDate: e.ReleaseDate,
 				Torrent:     []*Torrent{&t},
+				PosterPath:  e.PosterPath,
 			}
 			rid.Parts = append(rid.Parts, tid)
 		}
