@@ -9,6 +9,7 @@ type TmdbId struct {
 	VoteCount   int        `json:"vote_count,omitempty"`
 	Countries   []string   `json:"countries,omitempty"`
 	ReleaseDate string     `json:"release_date,omitempty"`
+	PosterPath  string     `json:"poster_path,omitempty"`
 }
 
 type ReleasesID struct {
