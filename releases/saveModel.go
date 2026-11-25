@@ -1,5 +1,7 @@
 package releases
 
+import "NUMParser/db/models"
+
 type TmdbId struct {
 	Id          int64      `json:"id,omitempty"`
 	MediaType   string     `json:"media_type,omitempty"`
@@ -10,6 +12,10 @@ type TmdbId struct {
 	Countries   []string   `json:"countries,omitempty"`
 	ReleaseDate string     `json:"release_date,omitempty"`
 	PosterPath  string     `json:"poster_path,omitempty"`
+	// Кадр w1280 и логотип названия — карточке, баннеру и экрану загрузки
+	// TorrStream не нужно ходить за ними в TMDB (поля как в деталях сервера)
+	BackdropPath string       `json:"backdrop_path,omitempty"`
+	Logo         *models.Logo `json:"logo,omitempty"`
 }
 
 type ReleasesID struct {

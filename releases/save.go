@@ -3,6 +3,7 @@ package releases
 import (
 	"NUMParser/config"
 	"NUMParser/db/models"
+	"NUMParser/movies/tmdb"
 	"NUMParser/utils"
 	"compress/gzip"
 	"encoding/json"
@@ -23,6 +24,7 @@ func save(fname string, ents []*models.Entity) {
 	ents = utils.Distinct(ents, func(e *models.Entity) string {
 		return strconv.FormatInt(e.ID, 10)
 	})
+	ensureLogos(ents)
 	rid := new(ReleasesID)
 	rid.Date = time.Now().Format("02.01.2006")
 	rid.Time = time.Now().Format("15:04:05")
@@ -61,6 +63,7 @@ func save(fname string, ents []*models.Entity) {
 				Torrent:     []*Torrent{&t},
 				PosterPath:  e.PosterPath,
 			}
+			fillArt(tid, e)
 			rid.Items = append(rid.Items, tid)
 		} else {
 			if e == nil {
@@ -83,6 +86,22 @@ func save(fname string, ents []*models.Entity) {
 		log.Println("Len ents", len(ents))
 		log.Println("**********************************************************")
 	}
+}
+
+// Логотипы — параллельно; после первого прогона почти все уже в базе
+func ensureLogos(ents []*models.Entity) {
+	utils.PForLim(ents, 10, func(i int, e *models.Entity) bool {
+		tmdb.EnsureLogo(e)
+		return true
+	})
+}
+
+// Кадр w1280 и логотип в элемент файла
+func fillArt(tid *TmdbId, e *models.Entity) {
+	if e.BackdropPath != "" {
+		tid.BackdropPath = tmdb.ImageSize(e.BackdropPath, "w1280")
+	}
+	tid.Logo = e.Logo
 }
 
 func zip(rid *ReleasesID, fname string) error {

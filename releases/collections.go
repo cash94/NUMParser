@@ -231,6 +231,8 @@ func getCollectionId(coll *ml.Collection, ents []*models.Entity) *CollectionId {
 				Torrent:     []*Torrent{&t},
 				PosterPath:  e.PosterPath,
 			}
+			tmdb.EnsureLogo(e)
+			fillArt(tid, e)
 			rid.Parts = append(rid.Parts, tid)
 		}
 	}

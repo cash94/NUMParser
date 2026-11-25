@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -57,15 +58,23 @@ func Init() {
 
 }
 
+// Сериал в базе обновляется раз в неделю: у него выходят новые сезоны, а по
+// дате последнего эпизода «Сериалы» отличают новый сезон от перезалитой
+// раздачи старого сериала (releases/tv.go). Фильм не меняется — не обновляем
+const tvRefreshAge = 7 * 24 * time.Hour
+
 func GetVideoDetails(isMovie bool, id int64) *models.Entity {
-	var ent *models.Entity
+	var ent, old *models.Entity
 	if isMovie {
 		ent = tmdb.GetMovie(id)
 	} else {
 		ent = tmdb.GetTV(id)
 	}
 	if ent != nil {
-		return ent
+		if isMovie || time.Since(ent.UpdateDate) < tvRefreshAge {
+			return ent
+		}
+		old, ent = ent, nil
 	}
 
 	params := map[string]string{}
@@ -86,16 +95,89 @@ func GetVideoDetails(isMovie bool, id int64) *models.Entity {
 
 	err := readPageTmdb(endpoint, params, &ent)
 	if err != nil || ent == nil {
-		return nil
+		// Обновить не вышло — прежняя запись лучше, чем ничего
+		return old
 	}
 	fixEntity(ent)
 
 	titles := alternativeTitles(isMovie, id)
 	ent.Titles = titles
 
+	if old != nil {
+		ent.Logo, ent.LogoChecked = old.Logo, old.LogoChecked
+	}
+
 	tmdb.AddTMDB(ent)
 
 	return ent
+}
+
+// Логотип названия — по тем же правилам, что у сервера TorrStream
+// (services/tmdb.js pickLogo), чтобы в каталоге и в карточке он был один:
+// язык ru → en → без языка, внутри — PNG раньше SVG, затем голоса и ширина.
+// Спрашивается один раз на сущность, результат лежит в базе.
+var logoLangs = []string{"ru", "en", ""}
+
+func EnsureLogo(e *models.Entity) {
+	if e == nil || e.LogoChecked {
+		return
+	}
+	st := "movie"
+	if e.MediaType == "tv" {
+		st = "tv"
+	}
+	var imgs *models.Images
+	err := readPageTmdb(st+"/"+strconv.FormatInt(e.ID, 10)+"/images",
+		map[string]string{"include_image_language": "ru,en,null"}, &imgs)
+	if err != nil {
+		return // спросим в следующий раз
+	}
+	e.Logo = pickLogo(imgs)
+	e.LogoChecked = true
+	tmdb.AddTMDB(e)
+}
+
+func pickLogo(imgs *models.Images) *models.Logo {
+	if imgs == nil {
+		return nil
+	}
+	for _, lang := range logoLangs {
+		var best *models.Logo
+		var bestSvg bool
+		var bestVote float64
+		var bestWidth int
+		for _, l := range imgs.Logos {
+			if l.FilePath == "" || l.Iso6391 != lang {
+				continue
+			}
+			svg := strings.HasSuffix(strings.ToLower(l.FilePath), ".svg")
+			better := best == nil ||
+				(bestSvg && !svg) ||
+				(bestSvg == svg && (l.VoteAverage > bestVote || (l.VoteAverage == bestVote && l.Width > bestWidth)))
+			if better {
+				best = &models.Logo{FilePath: l.FilePath, AspectRatio: l.AspectRatio, Lang: lang}
+				bestSvg, bestVote, bestWidth = svg, l.VoteAverage, l.Width
+			}
+		}
+		if best != nil {
+			return best
+		}
+	}
+	return nil
+}
+
+// Картинка TMDB другого размера: «…/t/p/w780/x.jpg» → «…/t/p/w1280/x.jpg»
+func ImageSize(uri string, size string) string {
+	i := strings.Index(uri, "/t/p/")
+	if i < 0 {
+		return uri
+	}
+	rest := uri[i+len("/t/p/"):]
+	j := strings.Index(rest, "/")
+	if j < 0 {
+		return uri
+	}
+	return uri[:i+len("/t/p/")] + size + rest[j:]
 }
 
 func Search(isMovie bool, query string) []*models.Entity {

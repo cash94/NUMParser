@@ -56,7 +56,19 @@ type Entity struct {
 	EpisodeCount int    `json:"episode_count,omitempty"`
 
 	UpdateDate time.Time `json:"update_date,omitempty"`
-	torrent    *TorrentDetails
+
+	// Логотип названия (movies/tmdb.EnsureLogo). LogoChecked — логотип уже
+	// спрашивали: у многих фильмов его нет, и повторять запрос незачем
+	Logo        *Logo `json:"logo,omitempty"`
+	LogoChecked bool  `json:"logo_checked,omitempty"`
+
+	torrent *TorrentDetails
+}
+
+type Logo struct {
+	FilePath    string  `json:"file_path"`
+	AspectRatio float64 `json:"aspect_ratio,omitempty"`
+	Lang        string  `json:"lang,omitempty"`
 }
 
 func (e *Entity) GetTorrent() *TorrentDetails {
@@ -161,6 +173,15 @@ type Images struct {
 		VoteCount   int     `json:"vote_count"`
 		Width       int     `json:"width"`
 	} `json:"posters"`
+	Logos []struct {
+		AspectRatio float64 `json:"aspect_ratio"`
+		FilePath    string  `json:"file_path"`
+		Height      int     `json:"height"`
+		Iso6391     string  `json:"iso_639_1"`
+		VoteAverage float64 `json:"vote_average"`
+		VoteCount   int     `json:"vote_count"`
+		Width       int     `json:"width"`
+	} `json:"logos"`
 }
 
 type Genre struct {
