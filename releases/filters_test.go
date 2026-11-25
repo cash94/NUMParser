@@ -18,7 +18,8 @@ func TestTvIsRecent(t *testing.T) {
 		{models.Entity{LastAirDate: d(2019), FirstAirDate: d(2014)}, false}, // «Кремниевая долина»
 		{models.Entity{LastAirDate: d(now), FirstAirDate: d(2014)}, true},   // старый сериал, новый сезон
 		{models.Entity{LastAirDate: d(now - 1)}, true},
-		{models.Entity{LastAirDate: d(now - 2)}, false},
+		{models.Entity{LastAirDate: d(now - 2)}, true},
+		{models.Entity{LastAirDate: d(now - 3)}, false},
 		{models.Entity{FirstAirDate: d(now)}, true},
 		{models.Entity{}, true},
 	}
@@ -63,5 +64,21 @@ func TestFirstEnts(t *testing.T) {
 	}
 	if len(firstEnts(ents, 100)) != 7 {
 		t.Fatal("повторы по id должны отсеиваться")
+	}
+}
+
+func TestTvFits(t *testing.T) {
+	now := time.Now().Year()
+	if !tvFits(&models.Entity{LastAirDate: d(now), VoteAverage: 7.5, VoteCount: 10}) {
+		t.Error("свежий с оценкой 7.5")
+	}
+	if !tvFits(&models.Entity{LastAirDate: d(now)}) {
+		t.Error("свежий без оценки")
+	}
+	if tvFits(&models.Entity{LastAirDate: d(now), VoteAverage: 5.9, VoteCount: 10}) {
+		t.Error("свежий с оценкой 5.9")
+	}
+	if tvFits(&models.Entity{LastAirDate: d(now - 5), VoteAverage: 9, VoteCount: 900}) {
+		t.Error("старый")
 	}
 }

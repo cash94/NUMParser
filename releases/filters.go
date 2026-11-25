@@ -4,8 +4,6 @@ package releases
 
 import (
 	"NUMParser/db/models"
-	"NUMParser/utils"
-	"log"
 	"strconv"
 	"time"
 )
@@ -25,11 +23,11 @@ func dateYear(date string) int {
 	return 0
 }
 
-// Сериал выходит сейчас: последний эпизод — в этом или прошлом году. Свежая
-// раздача давно закончившегося сериала («Кремниевая долина», «Грань») — не
-// новый сезон, в «Сериалы» она не идёт. Даты последнего эпизода нет — по
-// дате выхода.
-const tvRecentYears = 1
+// Сериал выходит сейчас: последний эпизод — в этом году или в двух
+// предыдущих (в 2026 — 2026, 2025, 2024). Свежая раздача давно
+// закончившегося сериала («Кремниевая долина», «Грань») — не новый сезон, в
+// «Сериалы» она не идёт. Даты последнего эпизода нет — по дате выхода.
+const tvRecentYears = 2
 
 func tvIsRecent(e *models.Entity) bool {
 	y := dateYear(e.LastAirDate)
@@ -51,13 +49,31 @@ const (
 )
 
 func movieFits(e *models.Entity) bool {
-	rated := e.VoteCount > 0 && e.VoteAverage > 0
-	if rated && e.VoteAverage <= movieMinRating {
+	if !ratingFits(e) {
 		return false
 	}
 	y := dateYear(e.ReleaseDate)
 	return y == 0 || y >= time.Now().Year()-movieRecentYears
 }
+
+// Оценка TMDB выше 6 или оценки ещё нет
+func ratingFits(e *models.Entity) bool {
+	rated := e.VoteCount > 0 && e.VoteAverage > 0
+	return !rated || e.VoteAverage > movieMinRating
+}
+
+// Сериал для «Сериалов»: выходит сейчас и с оценкой выше 6 (или без оценки)
+func tvFits(e *models.Entity) bool {
+	return tvIsRecent(e) && ratingFits(e)
+}
+
+// «Сериалы»: столько карточек и столько свежих раздач перебираем — после
+// отбора по году и оценке подходит примерно половина
+const (
+	tvLimit   = 1000
+	tvReserve = 1200
+	tvTorrMax = 6000
+)
 
 // «Фильмы»: столько карточек. Набираем с запасом — разные раздачи одного
 // фильма дают одну запись TMDB, и повторы отсеются в firstEnts
@@ -80,18 +96,5 @@ func firstEnts(ents []*models.Entity, n int) []*models.Entity {
 		seen[e.ID] = true
 		out = append(out, e)
 	}
-	return out
-}
-
-func filterEnts(label string, ents []*models.Entity, keep func(e *models.Entity) bool) []*models.Entity {
-	before := 0
-	out := utils.Filter(ents, func(i int, e *models.Entity) bool {
-		if e == nil {
-			return true
-		}
-		before++
-		return !keep(e)
-	})
-	log.Println(label+":", "после отбора", len(out), "из", before)
 	return out
 }

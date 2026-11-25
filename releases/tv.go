@@ -27,12 +27,13 @@ func GetNewTVs() {
 
 	list = utils.UniqueTorrList(list)
 
-	if len(list) > 2000 {
-		list = list[:2000]
+	if len(list) > tvTorrMax {
+		list = list[:tvTorrMax]
 	}
 
-	ents := FillTMDB("TV", false, list, 1000)
-	ents = filterEnts("TV", ents, tvIsRecent)
+	// 1000 подходящих по году и оценке (tvFits), а не 1000 найденных
+	ents := FillTMDBKeep("TV", false, list, tvReserve, tvFits)
+	ents = firstEnts(ents, tvLimit)
 
 	log.Println("Found torrents:", len(ents))
 	log.Println("All torrents:", len(list))
