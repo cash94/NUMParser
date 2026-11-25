@@ -9,12 +9,17 @@ import (
 	"time"
 )
 
+const cartoonYears = 5
+
 func GetNewCartoons() {
 	torrs := db.GetTorrs()
+	now := time.Now().Year()
 	var list []*models.TorrentDetails
 
 	for _, torr := range torrs {
-		if torr.Categories == models.CatCartoonMovie && utils.Abs(torr.Year-time.Now().Year()) < 2 {
+		// Окно — пять лет: полнометражных мультфильмов на Rutor выходит мало, и
+		// за ±1 год набиралось около сотни. Свежие раздачи всё равно первыми
+		if torr.Categories == models.CatCartoonMovie && torr.Year >= now-cartoonYears && torr.Year <= now+1 {
 			list = append(list, torr)
 		}
 	}

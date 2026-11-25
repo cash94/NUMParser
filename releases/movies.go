@@ -34,6 +34,7 @@ func GetNewMovies() {
 	list = utils.UniqueTorrList(list)
 
 	ents := FillTMDB("Movies", true, list, 1000)
+	ents = filterEnts("Movies", ents, movieFits)
 
 	log.Println("Found torrents:", len(ents))
 	log.Println("All torrents:", len(list))

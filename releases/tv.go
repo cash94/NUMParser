@@ -32,6 +32,7 @@ func GetNewTVs() {
 	}
 
 	ents := FillTMDB("TV", false, list, 1000)
+	ents = filterEnts("TV", ents, tvIsRecent)
 
 	log.Println("Found torrents:", len(ents))
 	log.Println("All torrents:", len(list))
