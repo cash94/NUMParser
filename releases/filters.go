@@ -59,6 +59,30 @@ func movieFits(e *models.Entity) bool {
 	return y == 0 || y >= time.Now().Year()-movieRecentYears
 }
 
+// «Фильмы»: столько карточек. Набираем с запасом — разные раздачи одного
+// фильма дают одну запись TMDB, и повторы отсеются в firstEnts
+const (
+	moviesLimit   = 1000
+	moviesReserve = 1200
+)
+
+// Первые n разных фильмов по порядку раздач (свежие первыми)
+func firstEnts(ents []*models.Entity, n int) []*models.Entity {
+	out := make([]*models.Entity, 0, n)
+	seen := map[int64]bool{}
+	for _, e := range ents {
+		if e == nil || seen[e.ID] {
+			continue
+		}
+		if len(out) == n {
+			break
+		}
+		seen[e.ID] = true
+		out = append(out, e)
+	}
+	return out
+}
+
 func filterEnts(label string, ents []*models.Entity, keep func(e *models.Entity) bool) []*models.Entity {
 	before := 0
 	out := utils.Filter(ents, func(i int, e *models.Entity) bool {

@@ -16,7 +16,8 @@ func GetNewMovies() {
 	var list []*models.TorrentDetails
 
 	for _, torr := range torrs {
-		if torr.Categories == models.CatMovie && utils.Abs(torr.Year-time.Now().Year()) < 2 && torr.VideoQuality >= 200 {
+		// Фильмы этого года и двух предыдущих (в 2026 — 2026, 2025, 2024)
+		if torr.Categories == models.CatMovie && torr.Year >= time.Now().Year()-movieRecentYears && torr.Year <= time.Now().Year() && torr.VideoQuality >= 200 {
 			list = append(list, torr)
 		}
 	}
@@ -33,8 +34,9 @@ func GetNewMovies() {
 
 	list = utils.UniqueTorrList(list)
 
-	ents := FillTMDB("Movies", true, list, 1000)
-	ents = filterEnts("Movies", ents, movieFits)
+	// 1000 подходящих по рейтингу и году (movieFits), а не 1000 найденных
+	ents := FillTMDBKeep("Movies", true, list, moviesReserve, movieFits)
+	ents = firstEnts(ents, moviesLimit)
 
 	log.Println("Found torrents:", len(ents))
 	log.Println("All torrents:", len(list))

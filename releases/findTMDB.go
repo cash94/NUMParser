@@ -16,6 +16,13 @@ import (
 )
 
 func FillTMDB(label string, isMovie bool, torrs []*models.TorrentDetails, limit int) []*models.Entity {
+	return FillTMDBKeep(label, isMovie, torrs, limit, nil)
+}
+
+// FillTMDBKeep — как FillTMDB, но в список и в limit идут только сущности,
+// прошедшие keep: каталог с отбором (рейтинг «Фильмов») набирает limit
+// подходящих, а не limit найденных, из которых часть потом отсеется
+func FillTMDBKeep(label string, isMovie bool, torrs []*models.TorrentDetails, limit int, keep func(e *models.Entity) bool) []*models.Entity {
 	list := make([]*models.Entity, len(torrs))
 	var found atomic.Int32
 	utils.PForLim(torrs, 20, func(i int, t *models.TorrentDetails) bool {
@@ -43,6 +50,9 @@ func FillTMDB(label string, isMovie bool, torrs []*models.TorrentDetails, limit 
 		}
 		if md == nil {
 			log.Println(label+":", "Torr", i, "/", len(torrs), "not found in TMDB:", t.Title, t.Link)
+		} else if keep != nil && !keep(md) {
+			// Найден, но в каталог не подходит — индекс всё равно запоминаем
+			tmdb2.SetIndex(t, md)
 		} else {
 			list[i] = md
 			f := found.Add(1)

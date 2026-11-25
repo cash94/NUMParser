@@ -51,3 +51,17 @@ func TestMovieFits(t *testing.T) {
 		t.Error("dateYear")
 	}
 }
+
+func TestFirstEnts(t *testing.T) {
+	var ents []*models.Entity
+	for i := 0; i < 10; i++ {
+		ents = append(ents, &models.Entity{ID: int64(i % 7)}, nil)
+	}
+	out := firstEnts(ents, 5)
+	if len(out) != 5 || out[0].ID != 0 || out[4].ID != 4 {
+		t.Fatalf("%d", len(out))
+	}
+	if len(firstEnts(ents, 100)) != 7 {
+		t.Fatal("повторы по id должны отсеиваться")
+	}
+}
