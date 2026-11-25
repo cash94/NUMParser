@@ -21,14 +21,25 @@ func FillTMDB(label string, isMovie bool, torrs []*models.TorrentDetails, limit 
 	utils.PForLim(torrs, 20, func(i int, t *models.TorrentDetails) bool {
 		var md *models.Entity
 		indx := tmdb2.GetIndex(t.Hash)
-		if indx != 0 {
+		// Индекс хранит только id, без типа. Если раньше раздачу сопоставили с
+		// сущностью другого типа (сериал из «Сериалов» — с одноимённым фильмом),
+		// tv/<id> — это совсем другой сериал или 404. Такой индекс не берём:
+		// сущность этого id лежит в базе только под другим типом
+		if indx != 0 && !indexTypeMismatch(isMovie, indx) {
 			md = tmdb.GetVideoDetails(isMovie, indx)
+		}
+		if md != nil && !sameMediaType(isMovie, md) {
+			md = nil
 		}
 		if md == nil {
 			md = FindTMDBID(isMovie, t)
 			if md == nil {
 				md = FindTMDB(isMovie, t)
 			}
+		}
+		if md != nil && !sameMediaType(isMovie, md) {
+			log.Println(label+":", "skip wrong media type", md.MediaType, md.ID, "for", t.Title)
+			md = nil
 		}
 		if md == nil {
 			log.Println(label+":", "Torr", i, "/", len(torrs), "not found in TMDB:", t.Title, t.Link)
@@ -46,6 +57,25 @@ func FillTMDB(label string, isMovie bool, torrs []*models.TorrentDetails, limit 
 	})
 
 	return list
+}
+
+// Сущность того типа, что ждёт каталог: фильм для isMovie, иначе сериал
+func sameMediaType(isMovie bool, e *models.Entity) bool {
+	if e == nil {
+		return false
+	}
+	if e.MediaType == "" {
+		return true
+	}
+	return (e.MediaType == "movie") == isMovie
+}
+
+// id из индекса есть в базе только под другим типом — индекс устарел
+func indexTypeMismatch(isMovie bool, id int64) bool {
+	if isMovie {
+		return tmdb2.GetMovie(id) == nil && tmdb2.GetTV(id) != nil
+	}
+	return tmdb2.GetTV(id) == nil && tmdb2.GetMovie(id) != nil
 }
 
 func FindTMDBID(isMovie bool, torr *models.TorrentDetails) *models.Entity {
@@ -121,8 +151,11 @@ func FindTMDB(isMovie bool, torr *models.TorrentDetails) *models.Entity {
 		return list[0]
 	}
 
+	// Альтернативные названия — тем же типом, что и основное: тут стояло
+	// Search(true, …), и сериал по второму названию находил одноимённый фильм
+	// («Гангстерленд» / MobLand попадал в «Сериалы» с media_type movie)
 	for _, name := range torr.Names {
-		lst := tmdb.Search(true, name)
+		lst := tmdb.Search(isMovie, name)
 		list = append(list, lst...)
 	}
 

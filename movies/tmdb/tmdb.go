@@ -111,7 +111,9 @@ func Search(isMovie bool, query string) []*models.Entity {
 }
 
 func FindByID(isMovie bool, id string, idType string) *models.Entity {
-	if ent := tmdb.FindIMDB(id); ent != nil {
+	// В локальной базе IMDb id ищется сразу в сериалах и фильмах — берём, только
+	// если тип совпал, иначе спрашиваем TMDB (find/ отдаёт movie_ и tv_results)
+	if ent := tmdb.FindIMDB(id); ent != nil && (ent.MediaType == "movie") == isMovie {
 		return ent
 	}
 

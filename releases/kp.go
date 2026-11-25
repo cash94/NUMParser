@@ -104,6 +104,12 @@ func getKPCollection(c kpCollection, token string, idx *torrIndex) {
 	for i, it := range items {
 		log.Println("KP:", c.Name, i+1, "/", len(items), "—", it.title())
 		ent := findTmdbKP(c, it)
+		// Подборка сериалов — только сериалы, фильмов — только фильмы
+		// (sameMediaType, findTMDB.go)
+		if ent != nil && !sameMediaType(c.Movie, ent) {
+			log.Println("KP: не тот тип в TMDB:", it.title(), ent.MediaType, ent.ID)
+			ent = nil
+		}
 		if ent == nil {
 			log.Println("KP: не найден в TMDB:", it.title(), it.KinopoiskID)
 			continue
