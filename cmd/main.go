@@ -175,6 +175,7 @@ func scanReleases() {
 func scanMoviesYears() {
 	loadProxy()
 	releases.GetLegends()
+	releases.GetKPCollections()
 	for y := 1980; y <= time.Now().Year(); y++ {
 		releases.GetNewMoviesYear(y)
 	}

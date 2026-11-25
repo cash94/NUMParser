@@ -27,6 +27,7 @@ type ConfigParser struct {
 	Proxy     string `yaml:"proxy" json:"proxy" env:"PROXY_RUTOR" env-default:""`
 	TmdbToken string `yaml:"tmdbtoken" json:"tmdbtoken"`
 	AigKey    string `yaml:"aigkey" json:"aigkey"`
+	KpToken   string `yaml:"kptoken" json:"kptoken"`
 }
 
 var (
@@ -188,6 +189,8 @@ func ReadConfigParser(vars string) (string, error) {
 		return next.TmdbToken, nil
 	case vars == "AigKey":
 		return next.AigKey, nil
+	case vars == "KpToken":
+		return next.KpToken, nil
 	}
 	return "", nil
 }
