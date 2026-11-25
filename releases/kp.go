@@ -42,7 +42,6 @@ var kpCollections = []kpCollection{
 	{"kp_love_id.json", "LOVE_THEME", "Про любовь", true, 70},
 }
 
-
 const kpAPI = "https://kinopoiskapiunofficial.tech/api/v2.2/films/collections?type="
 
 type kpResponse struct {
@@ -65,7 +64,7 @@ type kpItem struct {
 func GetKPCollections() {
 	token := kpToken()
 	if token == "" {
-		log.Println("KP: пустой ключ Кинопоиска, подборки пропущены")
+		log.Println("KP: пустой ключ Кинопоиска (kptoken в config.yml), подборки пропущены")
 		return
 	}
 
